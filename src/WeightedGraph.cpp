@@ -35,6 +35,10 @@ void WeightedGraph::add_vertex(const std::string& vertex) {
 void WeightedGraph::add_edge(const std::string& from, const std::string& to, int weight) {
     // TODO: ensure both vertices exist, then push Edge{to, weight} into
     //       from's list AND Edge{from, weight} into to's list (undirected)
+    add_vertex(from);
+    add_vertex(to);
+	adj_list_[from].push_back({ to, weight });
+	adj_list_[to].push_back({ from, weight });
 }
 
 // =============================================================================
@@ -83,24 +87,34 @@ int WeightedGraph::edge_count() const {
 std::unordered_map<std::string, int>
 WeightedGraph::dijkstra(const std::string& source) const {
     std::unordered_map<std::string, int> dist;
-    // TODO: implement Dijkstra's — step numbers match the SVG rows
-    //
-    // 1. Declare dist (already done above)
-    // 2. Initialize every vertex's dist to std::numeric_limits<int>::max()
-    // 3. Guard: if (!has_vertex(source)) return dist;
-    // 4. Seed the source: dist[source] = 0;
-    // 5. Type alias: using Pair = std::pair<int, std::string>;
-    // 6. Min-heap declaration:
-    //      std::priority_queue<Pair, std::vector<Pair>,
-    //                          std::greater<Pair>> min_heap;
-    //    (std::greater flips the default max-heap to a min-heap)
-    // 7. Seed the min-heap: min_heap.push({0, source})
-    // 8. Main loop — while (!min_heap.empty()):
-    //      pop (d, u) with min_heap.top() / min_heap.pop()
-    // 9. Stale-entry skip: if (d > dist[u]) continue;
-    // 10. Relax every edge in adj_list_.at(u): compute new_dist = dist[u]
-    //     + edge.weight; if new_dist < dist[edge.to], update dist[edge.to]
-    //     and min_heap.push({new_dist, edge.to})
+
+	for (const auto& [vertex, _] : adj_list_) {
+        dist[vertex] = std::numeric_limits<int>::max();
+    }
+
+	if (!has_vertex(source)) return dist;
+
+	dist[source] = 0;
+	using Pair = std::pair<int, std::string>;   
+
+	std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> min_heap;
+	min_heap.push({ 0, source });
+
+    while (!min_heap.empty()) {
+		auto [d, u] = min_heap.top();
+		min_heap.pop();
+        if (d > dist[u]) continue; // Skip stale entries.
+        for (const auto& edge : adj_list_.at(u)) {
+			const int new_dist = d + edge.weight;
+			if (new_dist < dist[edge.to]) {
+                dist[edge.to] = new_dist;
+                min_heap.push({ new_dist, edge.to });
+            }
+		}
+    }
+
+    
+
     return dist;
 }
 
